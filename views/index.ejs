@@ -1,0 +1,206 @@
+<!-- Container mới cho dòng chữ WEB SOCKET -->
+<div class="center-text" id="webSocketContainer" style="display: none;">
+    <h1>WEB SOCKET</h1>
+</div>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WS Chat</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Cửa sổ nhập tên -->
+    <div id="nameInputContainer">
+        <label for="name">Enter your name:</label>
+        <input type="text" id="name" placeholder="Your Name">
+        <button onclick="submitName()">Start Chat</button>
+    </div>
+    
+    <!-- Cửa sổ chat -->
+    <div id="chatContainer" style="display: none;">
+        <ul id="userList"></ul>
+        <label for="message">Message:</label>
+        <div id="chatInputContainer">
+            <input type="text" id="chatInput" placeholder="Type a message">
+            <button id="sendButton" onclick="sendChat()">Send</button>
+        </div>
+        <div class="recording-buttons">
+            <button id="startRecording" class="record-button">Start Recording</button>
+            <button id="stopRecording" class="record-button">Stop Recording</button>
+            <div id="recordingTime" style="display: none;"></div>
+        </div>
+        <ul id="messageList"></ul>
+    </div>
+
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    <script src="https://cdn.rawgit.com/mattdiamond/Recorderjs/08e7abd9/dist/recorder.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <script>
+        const socketIO = io();
+        const userList = document.getElementById('userList');
+        const messageList = document.getElementById('messageList');
+        const startRecordingButton = document.getElementById('startRecording');
+        const stopRecordingButton = document.getElementById('stopRecording');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const nameInputContainer = document.getElementById('nameInputContainer');
+        const chatContainer = document.getElementById('chatContainer');
+        const recordingTimeElement = document.getElementById('recordingTime');
+        const webSocketContainer = document.getElementById('webSocketContainer'); // Thêm dòng này
+
+        let username;
+        let recordingInterval;
+
+        function submitName() {
+            username = document.getElementById('name').value.trim();
+            if (username) {
+                socketIO.emit('join', { username });
+
+                // Ẩn cửa sổ nhập tên
+                nameInputContainer.style.display = 'none';
+
+                // Hiển thị cửa sổ chat
+                chatContainer.style.display = 'block';
+                webSocketContainer.style.display = 'block'; // Hiển thị tiêu đề "WEB SOCKET"
+
+                const listItem = document.createElement('li');
+                listItem.textContent = `${username} joined the chat`;
+
+                startRecordingButton.disabled = false;
+                stopRecordingButton.disabled = true;
+            }
+        }
+
+        window.onload = () => {
+            // Hiển thị cửa sổ nhập tên khi trang được tải
+            nameInputContainer.style.display = 'block';
+        };
+
+        socketIO.on('voice', (data) => {
+    const listItem = document.createElement('li');
+    listItem.classList.add('user-message', 'voice-message');
+
+    const playButton = document.createElement('button');
+    playButton.textContent = '▶️';
+    playButton.classList.add('play-button');
+
+    const audioElement = new Audio(data.audio);
+
+    playButton.addEventListener('click', () => {
+        if (audioElement.paused) {
+            audioElement.play();
+            playButton.textContent = '⏸';
+        } else {
+            audioElement.pause();
+            playButton.textContent = '▶️';
+        }
+    });
+
+    audioElement.addEventListener('ended', () => {
+        playButton.textContent = '▶️';
+    });
+
+    if (data.username === username) {
+        listItem.classList.add('sent-voice', 'current-user');
+    } else {
+        listItem.classList.add('received-voice');
+    }
+
+    listItem.appendChild(document.createTextNode(`${data.username}: send a voice chat `));
+    listItem.appendChild(playButton);
+    messageList.appendChild(listItem);
+});
+
+        const sendVoice = () => {
+            const blob = new Blob(audioChunks, { type: 'audio/wav' });
+            const audioUrl = URL.createObjectURL(blob);
+            socketIO.emit('voice', audioUrl);
+            audioChunks = [];
+            hideRecordingTime(); // Ẩn thời gian ghi âm khi không ghi âm nữa
+        };
+
+        let mediaRecorder;
+        let audioChunks = [];
+
+        startRecordingButton.addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) {
+                        audioChunks.push(e.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    sendVoice();
+                    clearInterval(recordingInterval);
+                    updateRecordingTime(0);
+                };
+
+                mediaRecorder.start();
+                startRecordingButton.disabled = true;
+                stopRecordingButton.disabled = false;
+                showRecordingTime(); // Hiển thị thời gian ghi âm khi bắt đầu ghi âm
+
+                let seconds = 0;
+                recordingInterval = setInterval(() => {
+                    seconds++;
+                    updateRecordingTime(seconds);
+                }, 1000);
+            } catch (error) {
+                console.error('Error accessing microphone:', error);
+            }
+        });
+
+        stopRecordingButton.addEventListener('click', () => {
+            if (mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                startRecordingButton.disabled = false;
+                stopRecordingButton.disabled = true;
+            }
+        });
+
+        function sendChat() {
+            const message = chatInput.value.trim();
+            if (message) {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${username}: ${message}`;
+                listItem.classList.add('user-message', 'text-message', 'sent-message', 'current-user');
+                messageList.appendChild(listItem);
+
+                socketIO.emit('chat message', { username, message });
+
+                chatInput.value = '';
+            }
+        }
+
+        socketIO.on('chat message', (data) => {
+            const listItem = document.createElement('li');
+            listItem.textContent = `${data.username}: ${data.message}`;
+            listItem.classList.add('user-message', 'text-message', 'received-message');
+            messageList.appendChild(listItem);
+        });
+
+        function updateRecordingTime(seconds) {
+            const formattedTime = new Date(seconds * 1000).toISOString().substr(14, 5);
+            recordingTimeElement.textContent = `Recording Time: ${formattedTime}`;
+        }
+
+        function showRecordingTime() {
+            recordingTimeElement.style.display = 'block';
+        }
+
+        function hideRecordingTime() {
+            recordingTimeElement.style.display = 'none';
+        }
+
+    </script>
+</body>
+</html>
