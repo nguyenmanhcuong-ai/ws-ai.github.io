@@ -2,9 +2,6 @@
 <html lang="en">
 
 <head>
-    <div class="center-text" id="webSocketContainer" style="display: none;">
-        <h1>WEB SOCKET</h1>
-    </div>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WS Chat</title>
@@ -12,6 +9,10 @@
 </head>
 
 <body>
+    <!-- Container mới cho dòng chữ WEB SOCKET -->
+    <div class="center-text" id="webSocketContainer" style="display: none;">
+        <h1>WEB SOCKET</h1>
+    </div>
 
     <!-- Cửa sổ nhập tên -->
     <div id="nameInputContainer">
@@ -51,22 +52,21 @@
         const nameInputContainer = document.getElementById('nameInputContainer');
         const chatContainer = document.getElementById('chatContainer');
         const recordingTimeElement = document.getElementById('recordingTime');
-        const webSocketContainer = document.getElementById('webSocketContainer'); // Thêm dòng này
+        const webSocketContainer = document.getElementById('webSocketContainer');
 
         let username;
         let recordingInterval;
+        let mediaRecorder;
+        let audioChunks = [];
 
         function submitName() {
             username = document.getElementById('name').value.trim();
             if (username) {
                 socketIO.emit('join', { username });
 
-                // Ẩn cửa sổ nhập tên
                 nameInputContainer.style.display = 'none';
-
-                // Hiển thị cửa sổ chat
                 chatContainer.style.display = 'block';
-                webSocketContainer.style.display = 'block'; // Hiển thị tiêu đề "WEB SOCKET"
+                webSocketContainer.style.display = 'block';
 
                 const listItem = document.createElement('li');
                 listItem.textContent = `${username} joined the chat`;
@@ -77,55 +77,51 @@
         }
 
         window.onload = () => {
-            // Hiển thị cửa sổ nhập tên khi trang được tải
             nameInputContainer.style.display = 'block';
         };
 
         socketIO.on('voice', (data) => {
-    const listItem = document.createElement('li');
-    listItem.classList.add('user-message', 'voice-message');
+            const listItem = document.createElement('li');
+            listItem.classList.add('user-message', 'voice-message');
 
-    const playButton = document.createElement('button');
-    playButton.textContent = '▶️';
-    playButton.classList.add('play-button');
-
-    const audioElement = new Audio(data.audio);
-
-    playButton.addEventListener('click', () => {
-        if (audioElement.paused) {
-            audioElement.play();
-            playButton.textContent = '⏸';
-        } else {
-            audioElement.pause();
+            const playButton = document.createElement('button');
             playButton.textContent = '▶️';
-        }
-    });
+            playButton.classList.add('play-button');
 
-    audioElement.addEventListener('ended', () => {
-        playButton.textContent = '▶️';
-    });
+            const audioElement = new Audio(data.audio);
 
-    if (data.username === username) {
-        listItem.classList.add('sent-voice', 'current-user');
-    } else {
-        listItem.classList.add('received-voice');
-    }
+            playButton.addEventListener('click', () => {
+                if (audioElement.paused) {
+                    audioElement.play();
+                    playButton.textContent = '⏸';
+                } else {
+                    audioElement.pause();
+                    playButton.textContent = '▶️';
+                }
+            });
 
-    listItem.appendChild(document.createTextNode(`${data.username}: send a voice chat `));
-    listItem.appendChild(playButton);
-    messageList.appendChild(listItem);
-});
+            audioElement.addEventListener('ended', () => {
+                playButton.textContent = '▶️';
+            });
+
+            if (data.username === username) {
+                listItem.classList.add('sent-voice', 'current-user');
+            } else {
+                listItem.classList.add('received-voice');
+            }
+
+            listItem.appendChild(document.createTextNode(`${data.username}: sent a voice chat`));
+            listItem.appendChild(playButton);
+            messageList.appendChild(listItem);
+        });
 
         const sendVoice = () => {
-const blob = new Blob(audioChunks, { type: 'audio/wave' });
+            const blob = new Blob(audioChunks, { type: 'audio/wave' });
             const audioUrl = URL.createObjectURL(blob);
-            socketIO.emit('voice', audioUrl);
+            socketIO.emit('voice', { username, audio: audioUrl });
             audioChunks = [];
-            hideRecordingTime(); // Ẩn thời gian ghi âm khi không ghi âm nữa
+            hideRecordingTime();
         };
-
-        let mediaRecorder;
-        let audioChunks = [];
 
         startRecordingButton.addEventListener('click', async () => {
             try {
@@ -147,7 +143,7 @@ const blob = new Blob(audioChunks, { type: 'audio/wave' });
                 mediaRecorder.start();
                 startRecordingButton.disabled = true;
                 stopRecordingButton.disabled = false;
-                showRecordingTime(); // Hiển thị thời gian ghi âm khi bắt đầu ghi âm
+                showRecordingTime();
 
                 let seconds = 0;
                 recordingInterval = setInterval(() => {
@@ -202,12 +198,10 @@ const blob = new Blob(audioChunks, { type: 'audio/wave' });
         }
 
         document.getElementById('chatInput').addEventListener('keydown', (event) => {
-            // Kiểm tra xem nút Enter đã được nhấn
             if (event.key === 'Enter') {
-                sendChat(); // Gọi hàm gửi tin nhắn
+                sendChat();
             }
         });
-
     </script>
 </body>
 
