@@ -1,16 +1,13 @@
-<!-- Container mới cho dòng chữ WEB SOCKET -->
-<div class="center-text" id="webSocketContainer" style="display: none;">
-    <h1>WEB SOCKET</h1>
-</div>
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WS Chat</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
 
     <!-- Cửa sổ nhập tên -->
@@ -19,7 +16,7 @@
         <input type="text" id="name" placeholder="Your Name">
         <button onclick="submitName()">Start Chat</button>
     </div>
-    
+
     <!-- Cửa sổ chat -->
     <div id="chatContainer" style="display: none;">
         <ul id="userList"></ul>
@@ -82,39 +79,39 @@
         };
 
         socketIO.on('voice', (data) => {
-    const listItem = document.createElement('li');
-    listItem.classList.add('user-message', 'voice-message');
+            const listItem = document.createElement('li');
+            listItem.classList.add('user-message', 'voice-message');
 
-    const playButton = document.createElement('button');
-    playButton.textContent = '▶️';
-    playButton.classList.add('play-button');
-
-    const audioElement = new Audio(data.audio);
-
-    playButton.addEventListener('click', () => {
-        if (audioElement.paused) {
-            audioElement.play();
-            playButton.textContent = '⏸';
-        } else {
-            audioElement.pause();
+            const playButton = document.createElement('button');
             playButton.textContent = '▶️';
-        }
-    });
+            playButton.classList.add('play-button');
 
-    audioElement.addEventListener('ended', () => {
-        playButton.textContent = '▶️';
-    });
+            const audioElement = new Audio(data.audio);
 
-    if (data.username === username) {
-        listItem.classList.add('sent-voice', 'current-user');
-    } else {
-        listItem.classList.add('received-voice');
-    }
+            playButton.addEventListener('click', () => {
+                if (audioElement.paused) {
+                    audioElement.play();
+                    playButton.textContent = '⏸';
+                } else {
+                    audioElement.pause();
+                    playButton.textContent = '▶️';
+                }
+            });
 
-    listItem.appendChild(document.createTextNode(`${data.username}: send a voice chat `));
-    listItem.appendChild(playButton);
-    messageList.appendChild(listItem);
-});
+            audioElement.addEventListener('ended', () => {
+                playButton.textContent = '▶️';
+            });
+
+            if (data.username === username) {
+                listItem.classList.add('sent-voice', 'current-user');
+            } else {
+                listItem.classList.add('received-voice');
+            }
+
+            listItem.appendChild(document.createTextNode(`${data.username}: send a voice chat `));
+            listItem.appendChild(playButton);
+            messageList.appendChild(listItem);
+        });
 
         const sendVoice = () => {
             const blob = new Blob(audioChunks, { type: 'audio/wav' });
@@ -201,6 +198,14 @@
             recordingTimeElement.style.display = 'none';
         }
 
+        document.getElementById('chatInput').addEventListener('keydown', (event) => {
+            // Kiểm tra xem nút Enter đã được nhấn
+            if (event.key === 'Enter') {
+                sendChat(); // Gọi hàm gửi tin nhắn
+            }
+        });
+
     </script>
 </body>
+
 </html>
