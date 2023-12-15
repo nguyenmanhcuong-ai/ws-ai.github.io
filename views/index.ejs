@@ -82,39 +82,39 @@
         };
 
         socketIO.on('voice', (data) => {
-            const listItem = document.createElement('li');
-            listItem.classList.add('user-message', 'voice-message');
+    const listItem = document.createElement('li');
+    listItem.classList.add('user-message', 'voice-message');
 
-            const playButton = document.createElement('button');
+    const playButton = document.createElement('button');
+    playButton.textContent = '▶️';
+    playButton.classList.add('play-button');
+
+    const audioElement = new Audio(data.audio);
+
+    playButton.addEventListener('click', () => {
+        if (audioElement.paused) {
+            audioElement.play();
+            playButton.textContent = '⏸';
+        } else {
+            audioElement.pause();
             playButton.textContent = '▶️';
-            playButton.classList.add('play-button');
+        }
+    });
 
-            const audioElement = new Audio(data.audio);
+    audioElement.addEventListener('ended', () => {
+        playButton.textContent = '▶️';
+    });
 
-            playButton.addEventListener('click', () => {
-                if (audioElement.paused) {
-                    audioElement.play();
-                    playButton.textContent = '⏸';
-                } else {
-                    audioElement.pause();
-                    playButton.textContent = '▶️';
-                }
-            });
+    if (data.username === username) {
+        listItem.classList.add('sent-voice', 'current-user');
+    } else {
+        listItem.classList.add('received-voice');
+    }
 
-            audioElement.addEventListener('ended', () => {
-                playButton.textContent = '▶️';
-            });
-
-            if (data.username === username) {
-                listItem.classList.add('sent-voice', 'current-user');
-            } else {
-                listItem.classList.add('received-voice');
-            }
-
-            listItem.appendChild(document.createTextNode(`${data.username}: send a voice chat `));
-            listItem.appendChild(playButton);
-            messageList.appendChild(listItem);
-        });
+    listItem.appendChild(document.createTextNode(`${data.username}: send a voice chat `));
+    listItem.appendChild(playButton);
+    messageList.appendChild(listItem);
+});
 
         const sendVoice = () => {
             const blob = new Blob(audioChunks, { type: 'audio/wav' });
