@@ -207,7 +207,7 @@ li {
 }
 
 #messageList {
-    max-height: 600px;
+    max-height: 470px;
     width: 600px;
     overflow-y: auto;
     scroll-behavior: smooth;
