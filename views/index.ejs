@@ -80,40 +80,47 @@
             nameInputContainer.style.display = 'block';
         };
 
-        socketIO.on('voice', (data) => {
-            const listItem = document.createElement('li');
-            listItem.classList.add('user-message', 'voice-message');
+socketIO.on('voice', (data) => {
+    const listItem = document.createElement('li');
+    listItem.classList.add('user-message', 'voice-message');
 
-            const playButton = document.createElement('button');
-            playButton.textContent = '▶️';
-            playButton.classList.add('play-button');
+    const playButton = document.createElement('button');
+    playButton.textContent = '▶️';
+    playButton.classList.add('play-button');
 
-            const audioElement = new Audio(data.audio);
+    const audioElement = new Audio();
+    audioElement.src = data.audio;  // Thiết lập nguồn audio từ dữ liệu nhận được
 
-            playButton.addEventListener('click', () => {
-                if (audioElement.paused) {
-                    audioElement.play();
+    playButton.addEventListener('click', () => {
+        if (audioElement.paused) {
+            audioElement.play()
+                .then(() => {
                     playButton.textContent = '⏸';
-                } else {
-                    audioElement.pause();
-                    playButton.textContent = '▶️';
-                }
-            });
+                })
+                .catch((error) => {
+                    console.error('Error playing audio:', error);
+                });
+        } else {
+            audioElement.pause();
+            playButton.textContent = '▶️';
+        }
+    });
 
-            audioElement.addEventListener('ended', () => {
-                playButton.textContent = '▶️';
-            });
+    audioElement.addEventListener('ended', () => {
+        playButton.textContent = '▶️';
+    });
 
-            if (data.username === username) {
-                listItem.classList.add('sent-voice', 'current-user');
-            } else {
-                listItem.classList.add('received-voice');
-            }
+    if (data.username === username) {
+        listItem.classList.add('sent-voice', 'current-user');
+    } else {
+        listItem.classList.add('received-voice');
+    }
 
-            listItem.appendChild(document.createTextNode(`${data.username}: sent a voice chat`));
-            listItem.appendChild(playButton);
-            messageList.appendChild(listItem);
-        });
+    listItem.appendChild(document.createTextNode(`${data.username}: sent a voice chat `));
+    listItem.appendChild(playButton);
+    messageList.appendChild(listItem);
+});
+
 
         const sendVoice = () => {
             const blob = new Blob(audioChunks, { type: 'audio/wave' });
